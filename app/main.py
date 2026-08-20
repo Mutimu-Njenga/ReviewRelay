@@ -1,12 +1,13 @@
 from fastapi import FastAPI, Header, HTTPException, Request, status
 
-from app.config import get_webhook_secret
+from app.config import get_delivery_database_path, get_webhook_secret
+from app.delivery_store import DeliveryStore
 from app.security import verify_signature
 
 
 app = FastAPI(
     title="ReviewRelay",
-    version="0.1.0",
+    version="0.2.0",
     description="A test-first foundation for secure GitHub pull-request webhook processing.",
 )
 
@@ -39,8 +40,21 @@ async def github_webhook(
             detail="Invalid webhook signature",
         )
 
+    if not x_github_delivery:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Missing X-GitHub-Delivery header",
+        )
+
+    store = DeliveryStore(get_delivery_database_path())
+    is_new_delivery = store.record_delivery(
+        delivery_id=x_github_delivery,
+        event=x_github_event,
+        body=raw_body,
+    )
+
     return {
-        "status": "accepted",
+        "status": "accepted" if is_new_delivery else "duplicate",
         "event": x_github_event,
         "delivery": x_github_delivery,
     }
