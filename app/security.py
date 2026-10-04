@@ -17,7 +17,11 @@ def build_signature(secret: str, body: bytes) -> str:
 
 def verify_signature(secret: str, body: bytes, supplied_signature: str | None) -> bool:
     """Validate a GitHub X-Hub-Signature-256 header safely."""
-    if not supplied_signature or not supplied_signature.startswith(SIGNATURE_PREFIX):
+    if (
+        not supplied_signature
+        or not supplied_signature.startswith(SIGNATURE_PREFIX)
+        or not supplied_signature.isascii()
+    ):
         return False
 
     expected_signature = build_signature(secret, body)

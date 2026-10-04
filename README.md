@@ -2,7 +2,7 @@
 
 ReviewRelay is a test-first foundation for a GitHub pull-request review
 service. The current milestone accepts signed GitHub webhook requests,
-rejects invalid signatures, and exposes a health endpoint.
+rejects invalid signatures, persists delivery IDs, and exposes a health endpoint.
 
 ## Current scope
 
@@ -12,16 +12,19 @@ Implemented:
 - `POST /webhooks/github`
 - `X-Hub-Signature-256` verification using SHA-256 HMAC
 - constant-time signature comparison
-- tests for health, valid signatures, invalid signatures, and missing signatures
+- rejection of malformed non-ASCII signature headers before persistence
+- SQLite-backed delivery ID persistence and duplicate-delivery responses
+- tests for health, signatures, missing headers, persistence, and duplicates
 
 Not yet implemented:
 
-- database persistence
-- duplicate-delivery protection
 - background queue and worker
 - pull-request review rules
 - GitHub API comments
 - deployment
+
+The service records a verified delivery once and returns `"status": "duplicate"`
+for a repeated delivery ID. It does not yet perform downstream review work.
 
 ## Local setup on Windows PowerShell
 
@@ -34,6 +37,9 @@ python -m pip install -r requirements-dev.txt
 Copy-Item .env.example .env
 $env:GITHUB_WEBHOOK_SECRET = "development-secret"
 ```
+
+For local testing, the SQLite database path can be set with
+`REVIEWRELAY_DB_PATH`; otherwise the app uses its configured default path.
 
 If PowerShell blocks virtual-environment activation, use the interpreter
 directly instead:
